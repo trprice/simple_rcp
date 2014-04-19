@@ -131,4 +131,4 @@ add_subdirectory (${TESTS_DIR})
 
 
 # Add the executable
-add_executable (simple_rcp ${PROJECT_SOURCE_DIR}/simple_rcp.c ${PROJECT_SOURCE_DIR}/simple_rcp_server.c ${PROJECT_SOURCE_DIR}/simple_rcp_client.c)
+add_executable (simple_rcp ${PROJECT_SOURCE_DIR}/simple_rcp.c ${PROJECT_SOURCE_DIR}/simple_rcp_server.c ${PROJECT_SOURCE_DIR}/simple_rcp_client.c ${PROJECT_SOURCE_DIR}/misc.c)
