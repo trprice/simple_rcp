@@ -27,8 +27,8 @@ int main (int argc, char **argv)
 
     if (result == 1)
         parse_server_args (argc, argv);
-    else if (result == 2)
-        parse_client_args (argc, argv);
+    //else if (result == 2)
+    //    parse_client_args (argc, argv);
     else
         return 0;
 

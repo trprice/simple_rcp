@@ -49,12 +49,6 @@ include_directories("${PROJECT_BUILD_INCLUDE_DIR}")
 # Setup libraries to be linked.
 ###############
 
-# Include Pthreads on Linux
-IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    FIND_PACKAGE (Threads)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
-
 # Enable ExternalProject CMake module
 INCLUDE (ExternalProject)
 
@@ -112,6 +106,9 @@ if(MSVC_VERSION EQUAL 1700)
   add_definitions(-D_VARIADIC_MAX=10)
 endif()
 
+# Add the source directory as an include directory for the main includes
+include_directories("${PROJECT_SOURCE_DIR}") 
+
 ExternalProject_Get_Property(googletest binary_dir)
 
 if (WIN32)
@@ -125,10 +122,15 @@ endif (WIN32)
 # Setup executables
 ###############
 
-# Setup core_tests
-set (TESTS_DIR ${PROJECT_SOURCE_DIR}/tests)
-add_subdirectory (${TESTS_DIR})
+# Setup the tests
+#set (TESTS_DIR ${PROJECT_SOURCE_DIR}/tests)
+#add_subdirectory (${TESTS_DIR})
+
+#set (TEST_LIBS simple_rcp_lib)
 
 
 # Add the executable
 add_executable (simple_rcp ${PROJECT_SOURCE_DIR}/simple_rcp.c ${PROJECT_SOURCE_DIR}/simple_rcp_server.c ${PROJECT_SOURCE_DIR}/simple_rcp_client.c ${PROJECT_SOURCE_DIR}/misc.c)
+
+# Add as a library for unit testing
+#add_library (simple_rcp_lib ${PROJECT_SOURCE_DIR}/simple_rcp.c ${PROJECT_SOURCE_DIR}/simple_rcp_server.c ${PROJECT_SOURCE_DIR}/simple_rcp_client.c ${PROJECT_SOURCE_DIR}/misc.c)

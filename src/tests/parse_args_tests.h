@@ -1,15 +1,16 @@
 #include "gtest/gtest.h"
+#include "simple_rcp.h"
 
-class ParseArgs : public ::testing::Test {
+class ParseArgsTest : public ::testing::Test {
  protected:
   // You can remove any or all of the following functions if its body
   // is empty.
 
-  BBoxTest() {
+  ParseArgsTest() {
     // You can do set-up work for each test here.
   }
 
-  virtual ~BBoxTest() {
+  virtual ~ParseArgsTest() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
 
