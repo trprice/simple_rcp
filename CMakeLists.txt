@@ -9,8 +9,6 @@ else (WIN32)
     set (CMAKE_CXX_FLAGS "-Wall -Wextra -std=c++11")
 endif (WIN32)
 
-set (_CMAKE_TOOLCHAIN_PREFIX llvm-)
-
     
 # Setup the version number
 set (Simple_RCP_VERSION_MAJOR 1)

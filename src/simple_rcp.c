@@ -26,7 +26,7 @@ int main (int argc, char **argv)
     result = parse_args(argc, argv);
 
     if (result == 1)
-        parse_server_args (argc, argv);
+        start_server (argc, argv);
     //else if (result == 2)
     //    parse_client_args (argc, argv);
     else
@@ -59,7 +59,7 @@ int parse_args (int argc, char **argv)
 {
     if (argc > 2)
     {
-        if (strncmp (argv[2], "--start-server", 14) == 0)
+        if (strncmp (argv[1], "--start-server", 14) == 0)
             return 1;
         else
             return 2;
