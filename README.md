@@ -4,16 +4,24 @@ simple_rcp
 Simple RCP client/server to learn about socket programming.
 
 
+Necessary Tools
+--------
+git - to clone from github
+CMake - to generate the makefiles
+svn - to download gtest
+
+
 Building
 --------
-
-Tools required: CMake
 
 1. <code>cd source_directory</code>
 2. <code>mkdir build</code>
 3. <code>cd build</code>
 4. <code>cmake ..</code>
 5. <code>make</code>
+
+CMake will generate make files using the C and C++ compilers set in the
+CC and CXX environment variables, respectively.
 
 The resulting binary will be in source_directory/build/bin.
 
@@ -26,8 +34,6 @@ file name, create the file, and receive file data.
 
 TO DO
 -----
-I need to still write the client side to open a connection, read the file, and
-write it to the socket.
-
 Additionally, the unit testing is not turned on yet and no tests have been
-written. The framework for writing tests is in place.
+written. The framework for writing tests is in place and will be downloaded
+as part of the build.

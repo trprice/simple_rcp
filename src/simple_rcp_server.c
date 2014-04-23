@@ -191,7 +191,6 @@ int setup_server_socket(int *socket_id, int *server_port)
     // Bind the socket to a port
     addrport.sin_family = AF_INET;
     addrport.sin_port = htons (*server_port);
-    //addrport.sin_addr.s_addr = htonl (INADDR_ANY);
     addrport.sin_addr.s_addr = inet_addr ("127.0.0.1");
 
     if (bind (*socket_id, (struct sockaddr *) &addrport, sizeof (addrport)) == -1)
@@ -251,6 +250,11 @@ int receive_file (int data_socket_id)
     strncpy (file_buffer, file_name_buf, counter);
     file_name_buf_size = atoi (file_buffer);
 
+    printf ("file_name_buf_size = %d\n", (int) file_name_buf_size);
+    printf ("counter = %d\n", counter);
+
+    // Clear the buffer
+    memset (file_name_buf, '\0', file_name_buf_size);
     
     // Remove the length from the queue
     if ((message_size = recv (data_socket_id, file_name_buf, counter, 0)) < 0)
@@ -259,6 +263,10 @@ int receive_file (int data_socket_id)
         return -1;
     }
 
+    printf ("file_name_buf:%s\n", file_name_buf);
+
+    // Clear the buffer
+    memset (file_name_buf, '\0', file_name_buf_size);
     
     // Receive file name
     //      Error here. The file name isn't as long as the max and we're
@@ -270,6 +278,8 @@ int receive_file (int data_socket_id)
         return -1;
     }
 
+    printf ("file_name_buf:%s\n", file_name_buf);
+
     
     // Open file with the given file name.
     //     Note that this will create the file with the same ownership and
@@ -279,6 +289,9 @@ int receive_file (int data_socket_id)
 
     // Receive file data & write it
     do {
+        // Clear the buffer
+        memset (file_buffer, '\0', buffer_size);
+
         if ((message_size = recv (data_socket_id, file_buffer, buffer_size, 0)) < 0)
         {
             printf ("recv of file data failed\n");
