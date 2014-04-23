@@ -9,8 +9,4 @@ int start_client (int argc, char **argv);
 
 // Global Definitions
 #define MAX_WAIT_QUEUE 10
-
-
-// Global Variables
-//      Look at making these not global
-int server_port;
+#define MAX_PATH_FILE_NAME_LEN PATH_MAX + NAME_MAX + 1

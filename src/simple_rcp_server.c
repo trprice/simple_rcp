@@ -15,8 +15,8 @@
 ////////////////////////////////////////
 // Forward declarations for the server.
 ////////////////////////////////////////
-int parse_server_args (int argc, char **argv);
-int setup_server_socket (int *socket_id);
+int parse_server_args (int argc, char **argv, int *server_port);
+int setup_server_socket (int *socket_id, int *server_port);
 int close_socket ();
 int receive_file (int data_socket_id);
 
@@ -38,13 +38,14 @@ int start_server (int argc, char **argv)
 {
     int returnValue;
     int socket_id, data_socket_id;
+    int server_port;
     struct sockaddr_in client_addr;
     socklen_t client_addr_len;
 
-    if (parse_server_args (argc, argv) == -1)
+    if (parse_server_args (argc, argv, &server_port) == -1)
         return -1;
 
-    if (setup_server_socket (&socket_id) == -1)
+    if (setup_server_socket (&socket_id, &server_port) == -1)
         return -1;
 
     // Call accept() and let it block until we have a connection.
@@ -90,7 +91,7 @@ int start_server (int argc, char **argv)
 //          0 - Valid arguments
 //          -1 - Bad arguments
 ////////////////////////////////////////
-int parse_server_args (int argc, char **argv)
+int parse_server_args (int argc, char **argv, int *server_port)
 {
     int numPortChars, counter;
     char *szPort;
@@ -104,49 +105,48 @@ int parse_server_args (int argc, char **argv)
         return -1;
     }
 
-    if (strncmp (argv[2], "--port=", 7) != 0)
+    if (strncmp (argv[2], "--port=", 7) == 0)
     {
-        print_usage_details();
-        return -1;
-    }
-
-    // For clarity take away 7 chars for "--port="
-    // and add 1 for the null character.
-    numPortChars = strlen (argv[2]) - 7 + 1;
-    szPort = malloc (numPortChars * sizeof (char));
-
-
-    strncpy (szPort, argv[2] + 7, numPortChars);
-    szPort[numPortChars] = '\0';
-
-    counter = 0;
-
-    while (szPort[counter] != '\0')
-    {
-        if (!isdigit (szPort[counter]))
+        // For clarity take away 7 chars for "--port="
+        // and add 1 for the null character.
+        numPortChars = strlen (argv[2]) - 7 + 1;
+        szPort = malloc (numPortChars * sizeof (char));
+    
+    
+        strncpy (szPort, argv[2] + 7, numPortChars);
+        szPort[numPortChars] = '\0';
+    
+        counter = 0;
+    
+        while (szPort[counter] != '\0')
+        {
+            if (!isdigit (szPort[counter]))
+            {
+                print_usage_details();
+                printf ("Found a character in the port number\n");
+                return -1;
+            }
+    
+            counter++;
+        }
+    
+        iPort = atoi (szPort);
+        
+        if (iPort > 65535)
         {
             print_usage_details();
-            printf ("Found a character in the port number\n");
+            printf ("Port number was greater than 65535\n");
             return -1;
         }
-
-        counter++;
-    }
-
-    iPort = atoi (szPort);
     
-    if (iPort > 65535)
-    {
-        print_usage_details();
-        printf ("Port number was greater than 65535\n");
-        return -1;
+        *server_port = iPort;
+    
+    
+        // Clean up
+        free (szPort);
     }
-
-    server_port = iPort;
-
-
-    // Clean up
-    free (szPort);
+    else
+        *server_port = 1111;
 
     return 0;
 }
@@ -169,7 +169,7 @@ int parse_server_args (int argc, char **argv)
 //          - What does this imply for the client?
 //              - Always having to specify IP?
 ////////////////////////////////////////
-int setup_server_socket(int *socket_id)
+int setup_server_socket(int *socket_id, int *server_port)
 {
     struct sockaddr_in addrport;
 
@@ -185,7 +185,7 @@ int setup_server_socket(int *socket_id)
 
     // Bind the socket to a port
     addrport.sin_family = AF_INET;
-    addrport.sin_port = htons (server_port);
+    addrport.sin_port = htons (*server_port);
     addrport.sin_addr.s_addr = htonl (INADDR_ANY);
 
     if (bind (*socket_id, (struct sockaddr *) &addrport, sizeof (addrport)) == -1)
@@ -222,7 +222,7 @@ int setup_server_socket(int *socket_id)
 int receive_file (int data_socket_id)
 {
     ssize_t message_size, written_size;
-    size_t file_name_buf_size = PATH_MAX + NAME_MAX + 1;
+    size_t file_name_buf_size = MAX_PATH_FILE_NAME_LEN;
     size_t buffer_size = PIPE_BUF + 1;
     char file_name_buf[file_name_buf_size], file_buffer[buffer_size];
     int file_id;
