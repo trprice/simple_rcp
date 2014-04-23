@@ -2,11 +2,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <linux/limits.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "simple_rcp.h"
 
 
@@ -20,6 +24,8 @@
 // Forward declarations for the client.
 ////////////////////////////////////////
 int parse_client_args (int argc, char **argv, int *client_port, char *from_file_name, char *host, char *to_file_name);
+int setup_client_socket (int *socket_id, int client_port, char *host);
+int send_file (int data_socket_id, char *from_file_name, char *to_file_name);
 
 
 ////////////////////////////////////////
@@ -50,13 +56,18 @@ int start_client (int argc, char **argv)
         return -1;
 
 
-    //if (setup_client_socket (&socket_id) == -1)
-    //    return -1;
+    if (setup_client_socket (&socket_id, client_port, host) == -1)
+        return -1;
 
     // Handle sending the file.
+    if (send_file (socket_id, from_file_name, to_file_name) == -1)
+    {
+        close_socket();
+        return -1;
+    }
 
-    //if (close_socket() == -1)
-    //    return -1;    
+    if (close_socket() == -1)
+        return -1;    
 
     return 0;
 }
@@ -168,7 +179,7 @@ int parse_client_args (int argc, char **argv, int *client_port,
     }
     else
     {
-        memset (host, '\0', 16);
+        sprintf (host, "127.0.0.1");
 
         strncpy (to_file_name, scratch, MAX_PATH_FILE_NAME_LEN);
     }
@@ -176,3 +187,117 @@ int parse_client_args (int argc, char **argv, int *client_port,
     return 0;
 }
 
+
+////////////////////////////////////////
+//  Function: setup_client_socket
+//
+//  Purpose: Create the socket for the server.
+//
+//  Parameters:
+//      int *socket_id - sends the socket id.
+//      int client_port - The port to connect to
+//      char *host - The IP address to connect to
+//
+//  Return Value:
+//          0 - Socket opened and bound
+//          -1 - Something failed. The step that failed will print with printf
+//
+//  Notes:
+//      A socket of type AF_INET is always used.
+//          - What does this imply for the client?
+//              - Always having to specify IP?
+////////////////////////////////////////
+int setup_client_socket(int *socket_id, int client_port, char *host)
+{
+    struct sockaddr_in addrport;
+
+    // Create the socket
+    *socket_id = socket (AF_INET, SOCK_STREAM, 0);
+
+    if (*socket_id == -1)
+    {
+        printf ("Socket creation failed\n");
+        return -1;
+    }
+
+
+    // Bind the socket to a port
+    addrport.sin_family = AF_INET;
+    addrport.sin_port = htons (client_port);
+    addrport.sin_addr.s_addr = inet_addr (host);
+
+    if (connect (*socket_id, (struct sockaddr *) &addrport, sizeof (addrport)) == -1)
+    {
+        printf ("Connect failed\n");
+        return -1;
+    }
+
+    
+    return 0;
+}
+
+
+////////////////////////////////////////
+//  Function: send_file
+//
+//  Purpose: Communicate through the data socket to send the incoming file.
+//
+//  Parameters:
+//      int data_socket_id - The socket to communicate through.
+//
+//  Return Value:
+//          0 - Success
+//          -1 - Error
+////////////////////////////////////////
+int send_file (int data_socket_id, char *from_file_name, char *to_file_name)
+{
+    ssize_t message_size, written_size;
+    size_t buffer_size = PIPE_BUF + 1;
+    char file_buffer[buffer_size];
+    FILE *file_id;
+    size_t send_length;
+
+
+    // send file name
+    send_length = strlen(to_file_name);
+
+    sprintf (file_buffer, "%d", (int) send_length);
+
+    if (send (data_socket_id, file_buffer, strlen(file_buffer), 0) != strlen(file_buffer))
+    {
+        printf ("send of file name length failed\n");
+        return -1;
+    }
+
+    if (send (data_socket_id, to_file_name, send_length, 0) != send_length)
+    {
+        printf ("send of file name failed\n");
+        return -1;
+    }
+
+    
+    // Open file with the given file name.
+    //     Note that this will create the file with the same ownership and
+    //     permissions as the running process. 
+    file_id = fopen (from_file_name, "r");
+    
+
+    // send file data & write it
+    send_length = fread (file_buffer, 1, buffer_size - 1, file_id);
+
+    while (send_length > 0)
+    {
+        if (send (data_socket_id, file_buffer, send_length, 0) != send_length)
+        {
+            printf ("send of file data failed\n");
+            fclose (file_id);
+            return -1;
+        }
+
+        send_length = fread (file_buffer, 1, buffer_size - 1, file_id);
+    }
+
+    fclose (file_id);
+
+    return 0;
+}

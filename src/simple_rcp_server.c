@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include "simple_rcp.h"
 
@@ -17,7 +18,6 @@
 ////////////////////////////////////////
 int parse_server_args (int argc, char **argv, int *server_port);
 int setup_server_socket (int *socket_id, int *server_port);
-int close_socket ();
 int receive_file (int data_socket_id);
 
 
@@ -66,7 +66,7 @@ int start_server (int argc, char **argv)
         }
         else
         {
-            perror ("Accept returned a bad socket\n");
+            printf ("Accept returned a bad socket\n");
             return -1;
         }
     }
@@ -97,12 +97,17 @@ int parse_server_args (int argc, char **argv, int *server_port)
     char *szPort;
     int iPort;
 
-    if (argc < 3)
+    if (argc < 2)
     {
         print_usage_details();
         printf ("Starting a server\n");
-        printf ("Had less than 3 arguments\n.");
+        printf ("Had less than 2 arguments\n.");
         return -1;
+    }
+    else if (argc == 2)
+    {
+        *server_port = 1111;
+        return 0;
     }
 
     if (strncmp (argv[2], "--port=", 7) == 0)
@@ -162,7 +167,7 @@ int parse_server_args (int argc, char **argv, int *server_port)
 //
 //  Return Value:
 //          0 - Socket opened and bound
-//          -1 - Something failed. The step that failed will print with perror
+//          -1 - Something failed. The step that failed will print with printf
 //
 //  Notes:
 //      A socket of type AF_INET is always used.
@@ -178,7 +183,7 @@ int setup_server_socket(int *socket_id, int *server_port)
 
     if (*socket_id == -1)
     {
-        perror ("Socket creation failed\n");
+        printf ("Socket creation failed\n");
         return -1;
     }
 
@@ -186,11 +191,12 @@ int setup_server_socket(int *socket_id, int *server_port)
     // Bind the socket to a port
     addrport.sin_family = AF_INET;
     addrport.sin_port = htons (*server_port);
-    addrport.sin_addr.s_addr = htonl (INADDR_ANY);
+    //addrport.sin_addr.s_addr = htonl (INADDR_ANY);
+    addrport.sin_addr.s_addr = inet_addr ("127.0.0.1");
 
     if (bind (*socket_id, (struct sockaddr *) &addrport, sizeof (addrport)) == -1)
     {
-        perror ("Bind failed\n");
+        printf ("Bind failed\n");
         return -1;
     }
 
@@ -198,7 +204,7 @@ int setup_server_socket(int *socket_id, int *server_port)
     // Set the server port to listen.
     if (listen (*socket_id, MAX_WAIT_QUEUE) == -1)
     {
-        perror ("Listen failed\n");
+        printf ("Listen failed\n");
         return -1;
     }
 
@@ -225,13 +231,42 @@ int receive_file (int data_socket_id)
     size_t file_name_buf_size = MAX_PATH_FILE_NAME_LEN;
     size_t buffer_size = PIPE_BUF + 1;
     char file_name_buf[file_name_buf_size], file_buffer[buffer_size];
-    int file_id;
+    FILE *file_id;
+    int counter;
 
 
+    // Receive file name length
+    if ((message_size = recv (data_socket_id, file_name_buf, file_name_buf_size, MSG_PEEK)) < 0)
+    {
+        printf ("recv of file name length failed\n");
+        return -1;
+    }
+
+    counter = 0;
+
+    while (isdigit(file_name_buf[counter]))
+        counter++;
+
+
+    strncpy (file_buffer, file_name_buf, counter);
+    file_name_buf_size = atoi (file_buffer);
+
+    
+    // Remove the length from the queue
+    if ((message_size = recv (data_socket_id, file_name_buf, counter, 0)) < 0)
+    {
+        printf ("Removal of length from queue failed\n");
+        return -1;
+    }
+
+    
     // Receive file name
+    //      Error here. The file name isn't as long as the max and we're
+    //      reading EVERYTHING out of the buffer.
+    //      - How can we know how many bytes to read?
     if ((message_size = recv (data_socket_id, file_name_buf, file_name_buf_size, 0)) < 0)
     {
-        perror ("recv of file name failed\n");
+        printf ("recv of file name failed\n");
         return -1;
     }
 
@@ -239,50 +274,27 @@ int receive_file (int data_socket_id)
     // Open file with the given file name.
     //     Note that this will create the file with the same ownership and
     //     permissions as the running process. 
-    file_id = open (file_name_buf, O_CREAT|O_RDWR|O_TRUNC);
+    file_id = fopen (file_name_buf, "w+");
     
 
     // Receive file data & write it
     do {
         if ((message_size = recv (data_socket_id, file_buffer, buffer_size, 0)) < 0)
         {
-            perror ("recv of file data failed\n");
-            close (file_id);
+            printf ("recv of file data failed\n");
+            fclose (file_id);
             return -1;
         }
 
-        if ((written_size = write (file_id, file_buffer, message_size)) < 0)
+        if ((written_size = fwrite (file_buffer, 1, message_size, file_id)) < message_size)
         {
-            perror ("write to file failed\n");
-            close (file_id);
+            printf ("write to file failed\n");
+            fclose (file_id);
             return -1;
         }
     } while (message_size > 0);
 
-    close (file_id);
-
-    return 0;
-}
-
-
-////////////////////////////////////////
-//  Function: close_socket
-//
-//  Purpose: Create the socket for the server.
-//
-//  Parameters:
-//
-//  Return Value:
-//          0 - Socket closed successfully
-//          -1 - Error when closing socket.
-////////////////////////////////////////
-int close_socket(int socket_id)
-{
-    if (close (socket_id) == -1)
-    {
-        perror ("Close failed\n");
-        return -1;
-    }
+    fclose (file_id);
 
     return 0;
 }

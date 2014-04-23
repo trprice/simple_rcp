@@ -57,7 +57,7 @@ int main (int argc, char **argv)
 ////////////////////////////////////////
 int parse_args (int argc, char **argv)
 {
-    if (argc > 2)
+    if (argc >= 2)
     {
         if (strncmp (argv[1], "--start-server", 14) == 0)
             return 1;
