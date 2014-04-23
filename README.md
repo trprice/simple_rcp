@@ -6,9 +6,10 @@ Simple RCP client/server to learn about socket programming.
 
 Necessary Tools
 --------
-git - to clone from github
-CMake - to generate the makefiles
-svn - to download gtest
+
+1. git - to clone from github
+2. CMake - to generate the makefiles
+3. svn - to download gtest
 
 
 Building
