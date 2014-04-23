@@ -250,9 +250,6 @@ int receive_file (int data_socket_id)
     strncpy (file_buffer, file_name_buf, counter);
     file_name_buf_size = atoi (file_buffer);
 
-    printf ("file_name_buf_size = %d\n", (int) file_name_buf_size);
-    printf ("counter = %d\n", counter);
-
     // Clear the buffer
     memset (file_name_buf, '\0', file_name_buf_size);
     
@@ -262,8 +259,6 @@ int receive_file (int data_socket_id)
         printf ("Removal of length from queue failed\n");
         return -1;
     }
-
-    printf ("file_name_buf:%s\n", file_name_buf);
 
     // Clear the buffer
     memset (file_name_buf, '\0', file_name_buf_size);
@@ -277,8 +272,6 @@ int receive_file (int data_socket_id)
         printf ("recv of file name failed\n");
         return -1;
     }
-
-    printf ("file_name_buf:%s\n", file_name_buf);
 
     
     // Open file with the given file name.

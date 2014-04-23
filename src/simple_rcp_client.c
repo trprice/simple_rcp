@@ -269,9 +269,6 @@ int send_file (int data_socket_id, char *from_file_name, char *to_file_name)
         return -1;
     }
 
-    printf ("to_file_name:%s\n", to_file_name);
-    printf ("send_length = %d\n", (int) send_length);
-
     if (send (data_socket_id, to_file_name, send_length, 0) != send_length)
     {
         printf ("send of file name failed\n");
