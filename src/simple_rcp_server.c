@@ -191,7 +191,7 @@ int setup_server_socket(int *socket_id, int *server_port)
     // Bind the socket to a port
     addrport.sin_family = AF_INET;
     addrport.sin_port = htons (*server_port);
-    addrport.sin_addr.s_addr = inet_addr ("127.0.0.1");
+    addrport.sin_addr.s_addr = htonl (INADDR_ANY);
 
     if (bind (*socket_id, (struct sockaddr *) &addrport, sizeof (addrport)) == -1)
     {
